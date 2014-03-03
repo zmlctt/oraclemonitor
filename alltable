@@ -1,0 +1,82 @@
+--#触发器用表1
+begin
+create table new_session_history1
+as 
+select a.LOGON_TIME,a.sid,a.SERIAL#,a.USER#,a.USERNAME,a.OSUSER,a.PROCESS,a.MACHINE,a.TERMINAL,a.CLIENT_INFO
+from v$session a;
+delete new_session_history1;
+
+--#触发器用表2
+
+create table new_session_history2(date_num date, logon_time date,sid number,serial# number,user# number,username varchar2(30),
+osuser varchar2(30),process varchar2(12),machine varchar2(64),terminal varchar2(30),client_info varchar2(64));
+
+
+/*
+create table new_session_history2
+as 
+select a.LOGON_TIME,a.sid,a.SERIAL#,a.USER#,a.USERNAME,a.OSUSER,a.PROCESS,a.MACHINE,a.TERMINAL,a.CLIENT_INFO
+from v$session a;
+delete new_session_history2;
+*/
+--#ash
+create table ash as select * from v$active_session_history a where a.SQL_ID <> ' ' order by a.SAMPLE_ID;
+ALTER TABLE ash ADD sig NUMBER default 0;                                      --zcfu sig column 标记列 
+ALTER TABLE ash ADD nsample_ID NUMBER default NULL;                            --zcfu sig column 标记列 
+ALTER TABLE ash ADD row_num NUMBER default 0;                            --zcfu sig column 标记列 
+ALTER TABLE ash ADD ptr_spid NUMBER default 0;
+delete ash;          
+
+--#ash_final
+
+create table ash_final
+as
+select * from ash;
+delete ash_final;
+
+--#ash_sqlarea   //可以不要
+create table ash_sqlarea
+as
+select * from ash_final a 
+order by a.sample_id;
+alter table ash_sqlarea add sqltext clob ;
+delete ash_final;
+
+--# ash_final_tmp      //可以不要
+create table ash_final_tmp
+as
+select * from ash;
+delete ash_final_tmp;
+
+--#  maxtimestamp表
+create table maxtimestamp
+as
+select * from v$active_session_history a where a.SQL_ID <> ' ' order by a.SAMPLE_ID;
+delete maxtimestamp;
+
+
+--#My_Sqlarea表
+create table My_Sqlarea (date_num date ,sql_id VARCHAR2(13) ,sql_fulltext CLOB);
+
+
+--#sqlarea临时表
+create table sqlarea_tmp
+as
+select * 
+from v$sqlarea a
+where a.sql_id is not null;
+delete sqlarea_tmp;
+
+end;
+
+create table log_number(num number);--默认初试值为0//这个不要了
+
+--以select rowid ， num from log_number;点击锁头就能修改内容了
+
+create table zh_logmnr_contents tablespace hrbimage as select * from v$logmnr_contents;
+
+create table max_logmnr(time_stamp date);
+--以上面方法增加初始值
+
+ 
+/
